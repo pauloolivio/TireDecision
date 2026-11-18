@@ -1,0 +1,16 @@
+{
+  "name": "tire-decision",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Seleção de pneus com coleta automática no pneufree.com.br, etiqueta INMETRO, AHP e TOPSIS.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "coletar": "node scripts/coletar.js",
+    "test": "node --test --test-isolation=none tests/"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

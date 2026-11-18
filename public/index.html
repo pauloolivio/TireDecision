@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>TireDecision — escolha de pneus com AHP + TOPSIS e etiqueta INMETRO</title>
+  <meta name="description" content="Coleta automática de pneus, etiqueta INMETRO, AHP e TOPSIS para encontrar o melhor custo-benefício." />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2338bdf8'/%3E%3Ctext x='50' y='68' font-size='48' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%2304121d'%3ETD%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">TD</div>
+        <div>
+          <h1>TireDecision</h1>
+          <p>Dados do site · Etiqueta INMETRO · AHP + TOPSIS</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="status busy" id="status" role="status" aria-live="polite">
+          <span class="dot"></span>
+          <span id="status-text">Carregando…</span>
+        </div>
+        <label class="switch" title="Recoleta os dados do site a cada 10 minutos">
+          <input type="checkbox" id="auto-refresh" />
+          <span>Auto 10 min</span>
+        </label>
+        <button class="btn btn-ghost" id="btn-export" title="Baixar o ranking em CSV">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          CSV
+        </button>
+        <button class="btn btn-primary" id="btn-refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          Atualizar do site
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- 1. BUSCA -->
+    <section class="card" id="busca">
+      <div class="section-head">
+        <h2><span class="step">1</span> Marcação do pneu</h2>
+        <p>Digite a medida que está gravada no flanco do pneu (ex.: <b>205/55R16</b>). O programa busca automaticamente no pneufree.com.br e cruza com a etiqueta INMETRO.</p>
+      </div>
+
+      <div class="search-row">
+        <div class="field">
+          <label for="medida">Medida / marcação</label>
+          <input id="medida" list="medidas-lista" placeholder="205/55R16" inputmode="text" autocomplete="off" spellcheck="false" value="205/55R16" />
+          <datalist id="medidas-lista"></datalist>
+        </div>
+        <button class="btn btn-primary btn-lg" id="btn-analisar">Analisar pneus</button>
+      </div>
+
+      <div class="variants">
+        <span class="variants-label">Variações de carga/velocidade:</span>
+        <div class="chips" id="variants"></div>
+      </div>
+      <div class="search-msg" id="search-msg"></div>
+    </section>
+
+    <!-- 2. CENÁRIO -->
+    <section class="card" id="cenario-secao">
+      <div class="section-head">
+        <h2><span class="step">2</span> Cenário de decisão</h2>
+        <p>Escolha o seu perfil de uso. Cada cenário já traz as prioridades pré-definidas dos cinco fatores — os pesos saem de uma matriz AHP consistente.</p>
+      </div>
+
+      <div class="scenarios" id="cenarios"></div>
+
+      <div class="ahp-panel">
+        <div class="ahp-head">
+          <h3>Pesos AHP dos critérios</h3>
+          <span class="cr" id="cr-badge">—</span>
+        </div>
+        <div class="weights" id="pesos"></div>
+
+        <details class="matrix" id="matriz-detalhe">
+          <summary>Ver matriz de comparação par a par (Saaty)</summary>
+          <div id="matriz"></div>
+        </details>
+
+        <div class="custom-controls" id="custom-controls" hidden>
+          <div class="slider-row">
+            <label>Chuva (segurança) <span id="sl-chuva-val">20%</span></label>
+            <input type="range" id="sl-chuva" min="0" max="100" value="20" />
+          </div>
+          <div class="slider-row">
+            <label>Eficiência <span id="sl-eficiencia-val">20%</span></label>
+            <input type="range" id="sl-eficiencia" min="0" max="100" value="20" />
+          </div>
+          <div class="slider-row">
+            <label>Vida útil <span id="sl-vida-val">20%</span></label>
+            <input type="range" id="sl-vida" min="0" max="100" value="20" />
+          </div>
+          <div class="slider-row">
+            <label>Preço <span id="sl-preco-val">20%</span></label>
+            <input type="range" id="sl-preco" min="0" max="100" value="20" />
+          </div>
+          <div class="slider-row">
+            <label>Ruído <span id="sl-ruido-val">20%</span></label>
+            <input type="range" id="sl-ruido" min="0" max="100" value="20" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. VEREDITO -->
+    <section class="card verdict-card" id="resultado" aria-live="polite">
+      <div class="verdict" id="verdict">
+        <div class="verdict-main">
+          <span class="verdict-kicker" id="v-kicker">Melhor custo-benefício</span>
+          <h2 id="v-nome">—</h2>
+          <div class="verdict-meta">
+            <span id="v-marcacao">—</span>
+            <span class="sep">•</span>
+            <a id="v-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Ver no site ↗</a>
+          </div>
+          <div class="verdict-badges" id="v-badges"></div>
+          <div class="verdict-price"><strong id="v-preco">—</strong><span>à vista, por pneu</span></div>
+          <ul class="reasons" id="v-razoes"></ul>
+        </div>
+
+        <aside class="verdict-side">
+          <div class="gauge-wrap">
+            <div class="gauge">
+              <svg width="118" height="118" viewBox="0 0 118 118" aria-hidden="true">
+                <defs>
+                  <linearGradient id="gradGauge" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#22d3ee" />
+                    <stop offset="100%" stop-color="#34d399" />
+                  </linearGradient>
+                </defs>
+                <circle class="trilha" cx="59" cy="59" r="50" fill="none" stroke-width="9" />
+                <circle id="gauge-valor" class="valor" cx="59" cy="59" r="50" fill="none" stroke-width="9"
+                        stroke-dasharray="314.159" stroke-dashoffset="314.159" />
+              </svg>
+              <div class="centro"><b id="v-score">—</b><span>TOPSIS</span></div>
+            </div>
+            <div class="gauge-info">
+              <div class="linha"><span>AHP (MAVT)</span><b id="v-ahp">—</b></div>
+              <div class="linha"><span>Margem p/ 2º</span><b id="v-margem">—</b></div>
+              <div class="linha"><span>Custo / 1.000 km</span><b id="v-custo">—</b></div>
+              <div class="linha"><span>Consumo estimado</span><b id="v-consumo">—</b></div>
+            </div>
+          </div>
+
+          <div class="agree" id="v-concordancia">—</div>
+          <div class="podio" id="v-podio"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 4. RANKING -->
+    <section class="card">
+      <div class="section-head">
+        <h2><span class="step">3</span> Ranking AHP × TOPSIS</h2>
+        <p>As duas técnicas usam os mesmos pesos. O TOPSIS decide pela proximidade da solução ideal; o AHP/MAVT soma os valores ponderados. Quanto mais próximos os dois, mais robusta é a escolha.</p>
+      </div>
+
+      <div class="chart-head">
+        <div class="legend">
+          <span><i style="background:#34d399"></i> AHP (soma ponderada)</span>
+          <span><i style="background:#38bdf8"></i> TOPSIS (proximidade)</span>
+        </div>
+        <div class="sort-btns" id="sort-btns">
+          <button data-sort="topsis" class="on">TOPSIS</button>
+          <button data-sort="ahp">AHP</button>
+          <button data-sort="preco">Preço</button>
+          <button data-sort="custo">Custo/km</button>
+        </div>
+      </div>
+
+      <div class="chart" id="chart"></div>
+
+      <details style="margin-top: 16px">
+        <summary>Contribuição de cada critério para o AHP (top 5)</summary>
+        <div class="chart" id="chart-contrib"></div>
+      </details>
+    </section>
+
+    <!-- 5. TABELA -->
+    <section class="card">
+      <div class="section-head">
+        <h2><span class="step">4</span> Tabela completa</h2>
+        <p id="tabela-resumo">—</p>
+      </div>
+      <p class="scroll-hint">Deslize a tabela para o lado para ver preço, AHP e TOPSIS.</p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Modelo</th>
+              <th>Marcação</th>
+              <th class="center">Efic.</th>
+              <th class="center">Chuva</th>
+              <th class="center">Ruído</th>
+              <th class="center">UTQG</th>
+              <th class="right">Preço</th>
+              <th class="right">R$ / 1.000 km</th>
+              <th class="right">AHP</th>
+              <th class="right">TOPSIS</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-corpo"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SENSIBILIDADE -->
+    <section class="card">
+      <details>
+        <summary>Análise de sensibilidade — posição dos finalistas em cada cenário</summary>
+        <div id="sensibilidade" style="margin-top: 14px"></div>
+      </details>
+    </section>
+
+    <!-- METODOLOGIA -->
+    <section class="card">
+      <details>
+        <summary>Metodologia, etiqueta INMETRO e premissas ajustáveis</summary>
+        <div class="metodologia" id="metodologia" style="margin-top: 16px">
+          <div>
+            <h3>1. De onde vêm os dados</h3>
+            <p>
+              Preço à vista, classe de eficiência, aderência em piso molhado, ruído (dB) e índice UTQG são lidos
+              diretamente do catálogo do <a href="https://www.pneufree.com.br" target="_blank" rel="noopener noreferrer">pneufree.com.br</a>
+              no momento da consulta. A coleta decodifica o payload da página (Next.js) e guarda um cache de 30 minutos;
+              se o site estiver fora do ar, o programa usa a última coleta salva.
+            </p>
+          </div>
+
+          <div>
+            <h3>2. Eficiência de rolamento (etiqueta INMETRO)</h3>
+            <p>
+              A etiqueta classifica o pneu de <b>A</b> (mais eficiente) a <b>G</b>. Adotamos a premissa de
+              <b id="txt-passo">8%</b> de perda de eficiência por classe, de forma composta: A = 100%, B = 92%,
+              C = 84,6%, e assim por diante. O consumo associado ao rolamento é inversamente proporcional a esse índice.
+              Já a aderência em piso molhado é tratada como escala ordinal: as classes A–G viram notas igualmente
+              espaçadas (A = 100%, G = 0%). As faixas de RRC e do índice G ficam como referência física da etiqueta.
+            </p>
+            <div class="table-scroll" style="margin-top: 10px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Classe</th>
+                    <th class="right">Eficiência relativa</th>
+                    <th class="right">RRC (kg/t)</th>
+                    <th class="right">Aderência (índice rel.)</th>
+                    <th class="right">Consumo estimado</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-classes"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <h3>3. AHP — pesos e consistência</h3>
+            <ul>
+              <li>Matriz de comparação par a par (escala de Saaty) entre os 5 critérios, definida por cenário.</li>
+              <li>Pesos pelo autovetor aproximado (média geométrica das linhas), normalizados para soma 1.</li>
+              <li>Consistência: <code>CR = CI / RI</code>, com <code>CI = (λmax − n) / (n − 1)</code> e <code>RI = 1,12</code> para n = 5.</li>
+              <li>CR ≤ 0,10 indica julgamentos coerentes — todos os cenários ficam bem abaixo disso.</li>
+              <li>Agregação das alternativas por soma ponderada dos valores normalizados (benefício: x/máx; custo: mín/x).</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3>4. TOPSIS — proximidade da solução ideal</h3>
+            <ul>
+              <li>Normalização vetorial: <code>rᵢⱼ = xᵢⱼ / √(Σ xᵢⱼ²)</code>.</li>
+              <li>Matriz ponderada <code>vᵢⱼ = wⱼ · rᵢⱼ</code>.</li>
+              <li>Ideal positivo e negativo: maior é melhor para chuva, eficiência e vida útil; menor é melhor para preço e ruído.</li>
+              <li>Distâncias <code>S+</code> e <code>S−</code> e coeficiente <code>C = S− / (S+ + S−)</code>.</li>
+              <li>O veredito usa o TOPSIS; o AHP aparece como conferência de robustez.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3>5. Premissas econômicas (editáveis)</h3>
+            <p>Afetam o consumo, o custo por quilômetro e a estimativa de vida útil — não alteram os rankings AHP/TOPSIS, exceto a degradação por classe.</p>
+            <div class="premissas">
+              <div class="field">
+                <label for="p-base">Consumo base classe A (L/100 km)</label>
+                <input type="number" id="p-base" min="1" max="30" step="0.1" value="7" />
+              </div>
+              <div class="field">
+                <label for="p-litro">Preço do litro (R$)</label>
+                <input type="number" id="p-litro" min="1" max="20" step="0.1" value="6.2" />
+              </div>
+              <div class="field">
+                <label for="p-utqg">km por ponto de UTQG</label>
+                <input type="number" id="p-utqg" min="20" max="500" step="10" value="150" />
+              </div>
+              <div class="field">
+                <label for="p-passo">Perda por classe (%)</label>
+                <input type="number" id="p-passo" min="0" max="30" step="0.5" value="8" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      <b>TireDecision</b> — ferramenta de apoio à decisão. Os dados pertencem ao
+      <a href="https://www.pneufree.com.br" target="_blank" rel="noopener noreferrer">pneufree.com.br</a>;
+      confira sempre preço e disponibilidade no site antes de comprar. Classes de eficiência e aderência seguem a
+      etiqueta INMETRO (PBE Pneus); UTQG é o índice de durabilidade do fabricante.
+    </p>
+    <p id="rodape-status">—</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <div style="padding: 24px; color: #fca5a5">Este programa precisa de JavaScript habilitado.</div>
+  </noscript>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

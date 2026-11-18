@@ -1,0 +1,22 @@
+{
+  "descricao": "Medidas populares sugeridas na interface. Qualquer marcação no formato 205/55R16 também pode ser digitada.",
+  "medidas": [
+    "175/65R14",
+    "175/70R14",
+    "185/60R15",
+    "185/65R14",
+    "185/65R15",
+    "195/55R15",
+    "195/55R16",
+    "195/60R15",
+    "195/65R15",
+    "205/55R16",
+    "205/60R15",
+    "205/60R16",
+    "215/55R17",
+    "215/60R16",
+    "225/45R17",
+    "225/50R17",
+    "235/45R18"
+  ]
+}
