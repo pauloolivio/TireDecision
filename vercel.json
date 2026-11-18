@@ -5,6 +5,7 @@
     "api/[...rota].js": {
       "maxDuration": 30,
       "includeFiles": [
+        "data/**",
         "data/semente/**",
         "data/medidas.json"
       ]
