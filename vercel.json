@@ -4,30 +4,20 @@
   "functions": {
     "api/[...rota].js": {
       "maxDuration": 30,
-      "includeFiles": [
-        "data/**",
-        "data/semente/**",
-        "data/medidas.json"
-      ]
+      "includeFiles": "{data/semente/**,data/medidas.json}"
     }
   },
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store"
-        }
+        { "key": "Cache-Control", "value": "no-store" }
       ]
     },
     {
       "source": "/lib/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
       ]
     }
   ]
