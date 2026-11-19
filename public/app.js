@@ -8,8 +8,8 @@
 
 import { analisar, reais, CRITERIOS } from "/lib/analise.js";
 import { resolverCenario } from "/lib/analise.js";
-import { CENARIOS, CENARIO_PERSONALIZADO, PREMISSAS_PADRAO } from "/lib/cenarios.js";
-import { tabelaClasses } from "/lib/eficiencia.js";
+import { CENARIOS, CENARIO_PERSONALIZADO, PREMISSAS_PADRAO } from "./lib/cenarios.js";
+import { tabelaClasses } from "./lib/eficiencia.js";
 
 const $ = (seletor) => document.querySelector(seletor);
 const $$ = (seletor) => [...document.querySelectorAll(seletor)];
